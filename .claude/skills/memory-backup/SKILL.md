@@ -14,13 +14,12 @@ Everything under `memory/`, stored raw by default
 (the course uses it to evaluate safety gates). Do not put real credentials in it.
 
 ## How it works
-1. `hooks/post-commit` runs after each commit: scan (result logged), then backup. A scan FAIL does not block the backup.
+1. `hooks/post-commit` runs `scripts/backup_memory.py` after each commit.
 2. The script snapshots `memory/` with git plumbing (temporary index), so the
    trainee's working tree, index, and branch are untouched.
 3. The snapshot is pushed to `memory-backups/<git user.name>` on the remote
    (`MEMORY_BACKUP_REMOTE`, default `origin`).
-4. `scripts/scan_memory.py` then scans `memory/` and appends a hash-chained record (rule/file/line only, never secret values) to `safety-log/safety-log.jsonl`; the record is committed automatically (`--commit`, only that file, local until the trainee pushes); verify with `python scripts/verify_log.py`.
-5. Backup prints a result line and appends it to `memory-backup.log`.
+4. It prints a result line and appends it to `memory-backup.log`.
 
 ## Commands
 - Opt in / install hook: `python install_hooks.py`

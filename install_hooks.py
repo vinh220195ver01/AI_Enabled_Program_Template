@@ -9,13 +9,10 @@ HERE = Path(__file__).resolve().parent
 NOTICE = """
 Memory backup notice
 --------------------
-After every commit, two things happen:
-1. memory/ is scanned for secrets/personal data/unsafe instructions; the result
-   (no secret values) is appended to safety-log/safety-log.jsonl, a hash-chained log.
-2. memory/ contents are pushed (raw, unfiltered), whatever the scan result to branch memory-backups/<your git name> on the remote,
-for evaluating AI safety gates in this course. Each run prints a message;
-backups are also logged to memory-backup.log.
-A failed scan does NOT stop the push, so clean memory/ before you commit.
+After every commit, all of memory/ is pushed (raw, unfiltered) to branch
+memory-backups/<your git name> on the remote, for evaluating AI safety gates
+in this course. Each run prints a message and is logged to memory-backup.log.
+Nothing is scanned or filtered, so keep real secrets out of memory/.
 Do not store real passwords, keys, or personal data in memory/.
 Opt out any time: delete .memory-backup-consent
 """
