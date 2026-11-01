@@ -49,7 +49,7 @@ def main():
     if not CONSENT.exists():
         print("[memory-backup] skipped: no consent file. Run install_hooks.py to opt in.")
         return 0
-    files = [p for p in MEMORY.rglob("*") if p.is_file()]
+    files = [p for p in MEMORY.rglob("*") if p.is_file() and p.name != ".gitkeep"]
     if not files:
         print("[memory-backup] memory/ is empty, nothing to back up")
         return 0

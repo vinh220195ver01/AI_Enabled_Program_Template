@@ -14,7 +14,7 @@ Everything under `memory/`, stored raw by default
 (the course uses it to evaluate safety gates). Do not put real credentials in it.
 
 ## How it works
-1. `hooks/post-commit` calls `scripts/backup_memory.py` after each commit.
+1. `hooks/post-commit` runs after each commit: scan first, then backup **only if the scan passed** (a FAIL prints a message and pushes nothing).
 2. The script snapshots `memory/` with git plumbing (temporary index), so the
    trainee's working tree, index, and branch are untouched.
 3. The snapshot is pushed to `memory-backups/<git user.name>` on the remote
