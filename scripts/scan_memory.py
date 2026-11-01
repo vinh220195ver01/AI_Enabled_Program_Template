@@ -9,7 +9,9 @@ The head hash is printed: pin it somewhere you control to detect a full reset.
 """
 import hashlib
 import json
+import os
 import re
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -59,7 +61,21 @@ def scan():
     return files, findings
 
 
+def commit_log():
+    """Commit only the log file (not anything else staged), then say so.
+    The env guard stops the post-commit hook from re-triggering itself."""
+    rel = LOG.relative_to(ROOT).as_posix()
+    env = {**os.environ, "SAFETY_SCAN_COMMITTING": "1"}
+    git = lambda *a: subprocess.run(["git", *a], cwd=ROOT, env=env, capture_output=True, text=True)
+    git("add", "--", rel)
+    r = git("commit", "-q", "--only", "-m", "chore: append safety-scan record", "--", rel)
+    print("[safety-scan] log committed" if r.returncode == 0
+          else f"[safety-scan] log NOT committed: {r.stderr.strip() or r.stdout.strip()}")
+
+
 def main():
+    if os.environ.get("SAFETY_SCAN_COMMITTING") == "1":
+        return 0  # triggered by our own log commit
     files, findings = scan()
     prev = GENESIS
     if LOG.exists() and LOG.read_text().strip():
@@ -74,6 +90,8 @@ def main():
     for x in findings:
         print(f"  - {x['section']} {x['rule']} at {x['file']}:{x['line']}")
     print(f"[safety-scan] log head hash: {rec['hash']}")
+    if "--commit" in sys.argv:
+        commit_log()
     return 1 if findings else 0
 
 
