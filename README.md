@@ -4,8 +4,6 @@ Starter kit for trainees.
 
 - `exercises/` — one folder per exercise, each with a `BRIEF.md` (see `exercises/README.md`).
 - `memory/` — your agent's memory is copied here when you submit an exercise.
-- `MEMORY_CHECKLIST.md` — review your memory against this before submitting.
-- `memory-review/TEMPLATE.md` — copy it to `memory-review/<your-name>.md` and fill it in.
 - `.claude/skills/submit-exercise/` — the last step of every exercise: `/submit-exercise <exercise name>`.
 - `.claude/skills/exercise-agent/` — template for the agent that guides one exercise and ends with the submit step.
 

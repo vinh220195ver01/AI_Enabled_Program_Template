@@ -14,10 +14,10 @@ Needs only `git` and a POSIX shell (Git Bash on Windows, which comes with Git). 
    `~/.claude/projects/<repo path with every non-alphanumeric char as '-'>/memory`
    (e.g. `C:\AI_Enabled_Program_Template` -> `C--AI-Enabled-Program-Template`).
    Files deleted from the agent's memory are deleted from `memory/` too.
+   If the agent has no memory yet, `memory/` is left as is; the submission is still valid.
 2. Stages `memory/` and commits it on the **current branch**, together with anything
    already staged, with message `submit: <exercise name> + agent memory`.
-3. Shows every file in the commit. The memory is raw and unfiltered, so the trainee
-   should review it first (see `MEMORY_CHECKLIST.md`).
+3. Shows every file in the commit. The memory is committed raw and unfiltered.
 
 ## Steps for the agent
 1. Make sure the exercise work is staged (`git add` the exercise files) and show the trainee

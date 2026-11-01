@@ -22,9 +22,8 @@ whole exercise for them. Keep notes worth remembering in your normal memory.
 2. Work through the exercise with the trainee, committing nothing yet.
 3. Check the "Done when" criteria with the trainee.
 4. **Final step: submit.** Tell the trainee to:
-   1. review `memory/` against `MEMORY_CHECKLIST.md`;
-   2. stage the exercise files (`git add`);
-   3. run `/submit-exercise <exercise name>`
+   1. stage the exercise files (`git add`);
+   2. run `/submit-exercise <exercise name>`
       (see `.claude/skills/submit-exercise/SKILL.md`).
 
 ## Rules
