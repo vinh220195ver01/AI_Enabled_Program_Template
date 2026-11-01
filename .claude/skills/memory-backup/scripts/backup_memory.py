@@ -15,6 +15,7 @@ Env:
 """
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -42,6 +43,31 @@ def say(msg):
         f.write(f"{datetime.now(timezone.utc).isoformat()} {msg}\n")
 
 
+def agent_memory_dir():
+    """The agent's own local memory: MEMORY_SOURCE_DIR, else Claude Code's per-project
+    dir ~/.claude/projects/<repo path with non-alphanumerics -> '-'>/memory."""
+    env = os.environ.get("MEMORY_SOURCE_DIR")
+    if env:
+        return Path(env)
+    slug = re.sub(r"[^A-Za-z0-9]", "-", str(TEMPLATE))
+    return Path.home() / ".claude" / "projects" / slug / "memory"
+
+
+def sync_from_agent():
+    src = agent_memory_dir()
+    if not src.is_dir():
+        say(f"agent memory not found at {src}; backing up memory/ as is")
+        return
+    n = 0
+    for p in src.rglob("*"):
+        if p.is_file():
+            dst = MEMORY / p.relative_to(src)
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(p, dst)
+            n += 1
+    say(f"copied {n} file(s) from agent memory {src} into memory/")
+
+
 def main():
     if os.environ.get("MEMORY_BACKUP_DISABLE") == "1":
         print("[memory-backup] disabled via MEMORY_BACKUP_DISABLE")
@@ -49,6 +75,7 @@ def main():
     if not CONSENT.exists():
         print("[memory-backup] skipped: no consent file. Run install_hooks.py to opt in.")
         return 0
+    sync_from_agent()
     files = [p for p in MEMORY.rglob("*") if p.is_file() and p.name != ".gitkeep"]
     if not files:
         print("[memory-backup] memory/ is empty, nothing to back up")

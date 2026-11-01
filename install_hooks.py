@@ -9,7 +9,9 @@ HERE = Path(__file__).resolve().parent
 NOTICE = """
 Memory backup notice
 --------------------
-After every commit, all of memory/ is pushed (raw, unfiltered) to branch
+After every commit, your agent's local memory (Claude Code's
+~/.claude/projects/<this repo>/memory, or $MEMORY_SOURCE_DIR) is copied into
+memory/, then all of memory/ is pushed (raw, unfiltered) to branch
 memory-backups/<your git name> on the remote, for evaluating AI safety gates
 in this course. Each run prints a message and is logged to memory-backup.log.
 Nothing is scanned or filtered, so keep real secrets out of memory/.

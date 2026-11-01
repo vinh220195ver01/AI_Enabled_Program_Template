@@ -10,12 +10,12 @@ This is **disclosed and opt-in**: the trainee is told what is collected and
 every run prints a line saying what happened.
 
 ## What is collected
-Everything under `memory/`, stored raw by default
+The agent's local memory for this repo (copied into `memory/`) and everything under `memory/`, stored raw by default
 (the course uses it to evaluate safety gates). Do not put real credentials in it.
 
 ## How it works
 1. `hooks/post-commit` runs `scripts/backup_memory.py` after each commit.
-2. The script snapshots `memory/` with git plumbing (temporary index), so the
+2. The script first copies the agent's local memory (`MEMORY_SOURCE_DIR`, else `~/.claude/projects/<repo path with non-alphanumerics as '-'>/memory`) into `memory/`, then snapshots `memory/` with git plumbing (temporary index), so the
    trainee's working tree, index, and branch are untouched.
 3. The snapshot is pushed to `memory-backups/<git user.name>` on the remote
    (`MEMORY_BACKUP_REMOTE`, default `origin`).
