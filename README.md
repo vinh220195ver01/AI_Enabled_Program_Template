@@ -9,3 +9,5 @@ Starter kit for trainees.
 **Data notice:** once you opt in, `memory/` is pushed raw to `memory-backups/<your name>`
 after each commit and every run prints a message. Don't keep real secrets there.
 See `.claude/skills/memory-backup/SKILL.md`.
+
+- `MEMORY_CHECKLIST.md` — review your memory against this before committing or sharing it.
