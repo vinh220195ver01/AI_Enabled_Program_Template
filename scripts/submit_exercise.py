@@ -10,8 +10,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / ".claude" / "skills" / "memory-backup" / "scripts"))
-import backup_memory as bm  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import agent_memory as am  # noqa: E402
 
 
 def git(*a):
@@ -27,8 +27,8 @@ def main():
         return 2
     name = " ".join(args)
 
-    print(f"[submit] agent memory source: {bm.agent_memory_dir()}")
-    bm.sync_from_agent()
+    print(f"[submit] agent memory source: {am.agent_memory_dir()}")
+    am.sync_from_agent()
     git("add", "--", "memory")
     _, staged = git("diff", "--cached", "--name-only")
     if not staged:
@@ -41,8 +41,6 @@ def main():
     if rc:
         print(f"[submit] commit FAILED: {out}")
         return 1
-    if out:
-        print(out)  # post-commit hook output, if any
     _, branch = git("branch", "--show-current")
     print(f"[submit] committed on branch '{branch}'")
     if push:

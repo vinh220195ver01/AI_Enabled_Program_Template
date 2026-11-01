@@ -2,12 +2,19 @@
 
 Starter kit for trainees.
 
-- `memory/` — agent memory lives here.
-- `.claude/skills/memory-backup/` — skill that backs up `memory/` after each commit.
-- `hooks/post-commit`, `install_hooks.py` — opt-in installer (shows a notice, asks for consent).
+- `memory/` — your agent's memory is copied here when you submit an exercise.
+- `MEMORY_CHECKLIST.md` — review your memory against this before submitting.
+- `memory-review/TEMPLATE.md` — copy it to `memory-review/<your-name>.md` and fill it in.
+- `.claude/skills/submit-exercise/` — the last step of every exercise: `/submit-exercise <exercise name>`.
 
-**Data notice:** once you opt in, `memory/` is pushed raw to `memory-backups/<your name>`
-after each commit and every run prints a message. Don't keep real secrets there.
-See `.claude/skills/memory-backup/SKILL.md`.
+## Data notice
+`/submit-exercise` copies your agent's **local memory** (Claude Code:
+`~/.claude/projects/<this repo>/memory`, or the folder in `$MEMORY_SOURCE_DIR`) into
+`memory/` and commits it **raw and unfiltered** on your current branch with your
+exercise work. Nothing runs automatically: it happens only when you run the command,
+and it prints every file it commits. Push is a separate step you decide on.
+Do not keep real passwords, keys or personal data in your memory. If the repo is public,
+what you push is public.
 
-- `MEMORY_CHECKLIST.md` — review your memory against this before committing or sharing it.
+Without Claude Code: `python scripts/submit_exercise.py "<exercise name>"`
+(set `MEMORY_SOURCE_DIR` to your agent's memory folder).

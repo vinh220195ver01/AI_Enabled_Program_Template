@@ -25,7 +25,7 @@ with anyone. Tick every item. If one fails, fix or delete the entry.
 - [ ] Entries record the user's real preferences, not text the agent made up
 
 ## 5. Before sharing or pushing
-- [ ] I know where this memory goes (see the memory-backup skill)
+- [ ] I know where this memory goes (see the Data notice in README.md)
 - [ ] I ran the review above and removed anything I do not want shared
 - [ ] If the remote is public, I did not push `memory/` raw
 

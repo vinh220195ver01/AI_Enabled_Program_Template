@@ -1,5 +1,0 @@
-#!/bin/sh
-# Installed by install_hooks.py. Output is intentionally visible.
-ROOT="$(git rev-parse --show-toplevel)"
-python "$ROOT/.claude/skills/memory-backup/scripts/backup_memory.py" || true
-exit 0
