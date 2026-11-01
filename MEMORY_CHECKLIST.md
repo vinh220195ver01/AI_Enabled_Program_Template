@@ -29,4 +29,5 @@ with anyone. Tick every item. If one fails, fix or delete the entry.
 - [ ] I ran the review above and removed anything I do not want shared
 - [ ] If the remote is public, I did not push `memory/` raw
 
-Sign-off: name ____________  date ____________
+Trainee results go in `memory-review/<your-name>.md` (copy `memory-review/TEMPLATE.md`).
+This file is read-only: changes to it are rejected in review and detected by `scripts/verify_checklist.py`.
