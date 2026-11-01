@@ -6,8 +6,12 @@ disable-model-invocation: true
 
 # submit-exercise
 
-Run as `/submit-exercise <exercise name>` when the exercise is finished.
-Needs only `git` and a POSIX shell (Git Bash on Windows, which comes with Git). No Python.
+Run as `/submit-exercise <exercise name>` when the exercise is finished. The exercise name
+is the exercise folder name, e.g. `/submit-exercise ex01-fizzbuzz`.
+Needs only `git` and Bash (Git Bash on Windows, which comes with Git). No Python.
+
+Only the trainee starts this skill. When the trainee types `/submit-exercise`, that is
+their go-ahead for the agent to run the steps below.
 
 ## What it does (tell the trainee before running)
 1. Replaces `memory/` with a copy of the agent's local memory: `$MEMORY_SOURCE_DIR` if set, else
@@ -20,11 +24,12 @@ Needs only `git` and a POSIX shell (Git Bash on Windows, which comes with Git). 
 3. Shows every file in the commit. The memory is committed raw and unfiltered.
 
 ## Steps for the agent
-1. Make sure the exercise work is staged (`git add` the exercise files) and show the trainee
-   `git status`.
+1. Stage only this exercise's files (`git add exercises/<exercise name>`), then show the
+   trainee `git status`. Anything else already staged goes into the same commit, so if
+   unrelated files are staged, ask the trainee whether to unstage them (`git restore --staged <file>`).
 2. Remind the trainee that raw memory will be committed; wait for a yes.
-3. Run this in a POSIX shell from the repo root, replacing `<exercise name>`, and show the
-   output as is:
+3. Run this with Bash (the Bash tool, or Git Bash on Windows; **not PowerShell or cmd**)
+   from the repo root, replacing `<exercise name>`, and show the output as is:
    ```bash
    NAME="<exercise name>"
    ROOT="$(git rev-parse --show-toplevel)"
