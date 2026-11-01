@@ -25,8 +25,7 @@ whole exercise for them. Keep notes worth remembering in your normal memory.
    1. review `memory/` against `MEMORY_CHECKLIST.md`;
    2. stage the exercise files (`git add`);
    3. run `/submit-exercise <exercise name>`
-      (see `.claude/skills/submit-exercise/SKILL.md`; without Claude Code:
-      `python scripts/submit_exercise.py "<exercise name>"`).
+      (see `.claude/skills/submit-exercise/SKILL.md`).
 
 ## Rules
 - `submit-exercise` can only be started by the trainee. Remind them; never run it yourself.

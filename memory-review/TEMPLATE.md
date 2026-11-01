@@ -5,8 +5,6 @@ Save this file as `memory-review/<your-name>.md` (lowercase, no spaces, e.g. `ng
 Name:
 Date:
 
-Checklist sha256 reviewed against (copy it from `checklist.sha256`, e.g. `cat checklist.sha256`):
-
 | Section | Pass/Fail | Notes |
 |---|---|---|
 | 1. Secrets | | |

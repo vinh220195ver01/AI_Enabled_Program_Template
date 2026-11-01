@@ -18,5 +18,3 @@ and it prints every file it commits. Push is a separate step you decide on.
 Do not keep real passwords, keys or personal data in your memory. If the repo is public,
 what you push is public.
 
-Without Claude Code: `python scripts/submit_exercise.py "<exercise name>"`
-(set `MEMORY_SOURCE_DIR` to your agent's memory folder).

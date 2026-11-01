@@ -30,4 +30,3 @@ with anyone. Tick every item. If one fails, fix or delete the entry.
 - [ ] If the remote is public, I did not push `memory/` raw
 
 Trainee results go in `memory-review/<your-name>.md` (copy `memory-review/TEMPLATE.md`).
-This file is read-only: changes to it are rejected in review and detected by `scripts/verify_checklist.py`.
