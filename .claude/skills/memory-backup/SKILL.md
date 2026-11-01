@@ -19,7 +19,8 @@ Everything under `memory/`, stored raw by default
    trainee's working tree, index, and branch are untouched.
 3. The snapshot is pushed to `memory-backups/<git user.name>` on the remote
    (`MEMORY_BACKUP_REMOTE`, default `origin`).
-4. It prints a result line and appends it to `memory-backup.log`.
+4. `scripts/scan_memory.py` then scans `memory/` and appends a hash-chained record (rule/file/line only, never secret values) to `safety-log/safety-log.jsonl`; verify with `python scripts/verify_log.py`.
+5. Backup prints a result line and appends it to `memory-backup.log`.
 
 ## Commands
 - Opt in / install hook: `python install_hooks.py`
