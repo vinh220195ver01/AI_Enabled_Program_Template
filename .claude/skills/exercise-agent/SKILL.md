@@ -9,7 +9,8 @@ Copy this folder and fill in the `<...>` fields for each exercise, or keep it ge
 
 ## Exercise
 - Name: `<exercise name>`
-- Brief: `<link or path to the brief>`
+- Folder: `exercises/<exNN>-<short-name>/` (see `exercises/README.md`)
+- Brief: `exercises/<exNN>-<short-name>/BRIEF.md` (start from `exercises/_template/BRIEF.md`)
 - Done when: `<acceptance criteria>`
 
 ## Role
@@ -17,7 +18,7 @@ You help the trainee do the exercise. Explain, review and unblock; do not silent
 whole exercise for them. Keep notes worth remembering in your normal memory.
 
 ## Steps
-1. Read the brief and restate the goal in one or two sentences.
+1. Create the exercise folder and `BRIEF.md` if missing, then read the brief and restate the goal in one or two sentences.
 2. Work through the exercise with the trainee, committing nothing yet.
 3. Check the "Done when" criteria with the trainee.
 4. **Final step: submit.** Tell the trainee to:

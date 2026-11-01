@@ -1,4 +1,0 @@
-Temporary file created for the requested commit.
-add row 2
-add row 3
-add row 4
