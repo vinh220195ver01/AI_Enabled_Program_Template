@@ -4,7 +4,7 @@
       { "hooks": [ { "type": "command", "command": "bash .claude/hooks/governance-guard.sh input" } ] }
     ],
     "Stop": [
-      { "hooks": [ { "type": "command", "command": "bash .claude/hooks/governance-guard.sh memory; bash .claude/hooks/governance-commit.sh", "timeout": 90 } ] }
+      { "hooks": [ { "type": "command", "command": "bash .claude/hooks/governance-guard.sh stop; bash .claude/hooks/governance-commit.sh", "timeout": 90 } ] }
     ]
   }
 }

@@ -12,7 +12,8 @@ BLOCK~~D-4~~Password, secret or key assigned a value~~(password|passwd|pwd|secre
 BLOCK~~D-4~~Database connection string with credentials~~((jdbc:[a-z]+|mongodb(\+srv)?|postgres(ql)?|mysql|redis|sqlserver|amqp)://[^[:space:]]*:[^[:space:]]*@|(server|data source)=[^;]*;.*(password|pwd)=)
 
 # --- D-3 / D-5: customer / production personal data (AR-06: escalate if real)
-BLOCK~~D-5~~Payment card number~~\b[0-9]{4}([ -]?[0-9]{4}){3}\b
+# BLOCK-LUHN: like BLOCK, but only matches that pass the Luhn check count (real card numbers do, random digit runs rarely)
+BLOCK-LUHN~~D-5~~Payment card number~~\b[0-9]{4}([ -]?[0-9]{4}){3}\b|\b[0-9]{13,19}\b|\b[0-9]{4} [0-9]{6} [0-9]{5}\b
 # a single email or phone number is normal; 3 or more on one line looks like a customer list
 WARN~~D-3~~Possible customer PII (3+ email addresses)~~([a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}.*){3,}
 WARN~~D-3~~Possible customer PII (3+ phone numbers)~~((\+84|\b0)[35789][0-9]{8}\b.*){3,}
