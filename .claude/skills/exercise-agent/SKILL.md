@@ -21,10 +21,9 @@ whole exercise for them. Keep notes worth remembering in your normal memory.
 1. Create the exercise folder and `BRIEF.md` if missing, then read the brief and restate the goal in one or two sentences.
 2. Work through the exercise with the trainee, committing nothing yet.
 3. Check the "Done when" criteria with the trainee.
-4. **Final step: submit.** Tell the trainee to:
-   1. stage the exercise files (`git add`);
-   2. run `/submit-exercise <exercise name>`
-      (see `.claude/skills/submit-exercise/SKILL.md`).
+4. **Final step: submit.** Tell the trainee to run `/submit-exercise <exercise name>`
+   (the exercise folder name). It stages the exercise files itself
+   (see `.claude/skills/submit-exercise/SKILL.md`).
 
 ## Rules
 - `submit-exercise` can only be started by the trainee. Remind them; never run it yourself.
