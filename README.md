@@ -19,7 +19,8 @@ what you push is public.
 
 ## Governance guard
 Hooks (`.claude/settings.json`) apply the *AI-Enabled QA Governance* register v0.1. They never
-block you; they **record** findings in `governance-checklist.md` as open checkboxes:
+block you; they **record** findings in `governance-checklist.md`, a table with one row per
+finding (when, severity, where, rule code, issue, what to do; tick `[x]` when handled):
 - Before each prompt: your input is scanned (the prompt text only). Secrets, keys, connection
   strings and card numbers (digit runs that pass the Luhn check) are logged as a **VIOLATION** (escalate, AR-06). Restricted or unlisted tools, confidential or
   production data and risky behavior are logged as **NEEDS REVIEW** (not an automatic fail).

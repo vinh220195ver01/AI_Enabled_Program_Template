@@ -76,31 +76,59 @@ init_checklist() {
 # Governance checklist
 
 Violations found by the governance guard (rules: AI-Enabled QA Governance register v0.1).
-Tick a box when the owner has reviewed it. Only rule IDs and file names are recorded,
-never the matched text.
+Only rule codes and file names are recorded, never the matched text.
+Change `[ ]` to `[x]` when the owner has reviewed a row.
 
-- VIOLATION: sensitive data (secret, key, credential, card number) was used or stored.
+**Severity**
+- **VIOLATION**: sensitive data (secret, key, credential, card number) was used or stored.
   Escalate to Security/Privacy/Data Owner (AR-06).
-- NEEDS REVIEW: restricted or unlisted tool, confidential/production data, or risky
+- **NEEDS REVIEW**: restricted or unlisted tool, confidential/production data, or risky
   behavior. Not an automatic fail (AR-03, AR-05, AR-07); prohibited behavior (P-*) fails
   only with reliable evidence (AR-04).
 
+**Rule codes** (look them up in the AI-Enabled QA_Governance Excel file)
+- D-3, D-4, D-5: data classification (sheet Data Policy): Confidential, Secret, Top Secret
+- R-01 to R-06: restricted tools (sheet Restricted)
+- AC-xx: AI tools (sheet AI Tools); AC-08 and AC-09 are Needs Review
+- P-04 to P-08: prohibited behavior (sheet Prohibited)
+- AR-xx: assessor decision rules (sheet Assessor Rules)
+
 HDR
+  table_header >> "$CHECKLIST"
+}
+
+table_header() {
+  printf '%s\n' '| Done | When | Severity | Found in | Code | Issue | Action |' '|---|---|---|---|---|---|---|'
 }
 
 # record <source> <rule-id> <level> <message> <dedupe-key>   (returns 1 if already recorded)
 record() {
-  local source="$1" id="$2" level="$3" msg="$4" key="$5" decision
+  local source="$1" id="$2" level="$3" msg="$4" key="$5" label action where
   if [ -f "$CHECKLIST" ] && grep -Fq "key:$key" "$CHECKLIST"; then return 1; fi
-  if [ "$level" = BLOCK ]; then decision="VIOLATION, escalate (AR-06)"
+  if [ "$level" = BLOCK ]; then
+    label="VIOLATION"
+    action="Remove or mask the data at its source; escalate to Security/Privacy/Data Owner (AR-06)"
   else
+    label="NEEDS REVIEW"
     case "$id" in
-      P-*) decision="NEEDS REVIEW, fail only with reliable evidence (AR-04)" ;;
-      *)   decision="NEEDS REVIEW (AR-03/05/07)" ;;
+      P-*)       action="Verify what actually happened; a violation only with reliable evidence (AR-04)" ;;
+      R-*)       action="Restricted tool: no internal or customer data; get approval first (sheet Restricted)" ;;
+      AC-*|AR-*) action="Check sheet AI Tools; an unapproved tool may only handle public or synthetic data (AR-03)" ;;
+      *)         action="Check the data class, mask it or use synthetic data, get approval before using it with AI (sheet Data Policy)" ;;
     esac
   fi
+  case "$source" in
+    input)    where="Prompt" ;;
+    memory:*) where="Memory: ${source#memory:}" ;;
+    file:*)   where="File: ${source#file:}" ;;
+    *)        where="$source" ;;
+  esac
+  where="${where//|/\\|}"
   init_checklist
-  printf -- '- [ ] %s | %s | %s | %s | %s | key:%s\n' "$(date '+%Y-%m-%d %H:%M')" "$source" "$id" "$decision" "$msg" "$key" >> "$CHECKLIST"
+  # a checklist written in an older format has no table yet: start one
+  grep -q '^| Done ' "$CHECKLIST" || { printf '\n' >> "$CHECKLIST"; table_header >> "$CHECKLIST"; }
+  printf -- '| [ ] | %s | %s | %s | %s | %s | %s <!-- key:%s --> |\n' \
+    "$(date '+%Y-%m-%d %H:%M')" "$label" "$where" "$id" "$msg" "$action" "$key" >> "$CHECKLIST"
 }
 
 # repo files worth scanning (relative paths): changed vs HEAD, untracked, and in unpushed commits
