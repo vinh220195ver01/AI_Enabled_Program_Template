@@ -24,7 +24,8 @@ block you; they **record** findings in `governance-checklist.md` as open checkbo
   are logged as a **VIOLATION** (escalate, AR-06). Restricted or unlisted tools, confidential or
   production data and risky behavior are logged as **NEEDS REVIEW** (not an automatic fail).
 - When the agent finishes: its local memory is scanned the same way (one entry per file and rule).
-- Right after, `governance-commit.sh` commits only `governance-checklist.md` and pushes. Other
-  staged files are not touched. If the push fails, it is retried at the next run.
+- Right after, `governance-commit.sh` commits only `governance-checklist.md`. Other staged files
+  are not touched. It never pushes: the checklist commit reaches the remote with your own push.
+- Input findings are recorded once per rule per day; memory findings once per file and content.
 Only the rule ID, source and file name are written, never the matched text. The scan is
 pattern-based, a safety net and not a guarantee. Tune it in `.claude/hooks/governance-rules.txt`.

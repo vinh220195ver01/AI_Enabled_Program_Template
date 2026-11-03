@@ -7,22 +7,24 @@
 # --- D-4 / D-5 / R-04 / P-03: secrets, keys, tokens, credentials
 BLOCK~~D-5~~Private key material~~-----BEGIN [A-Z ]*PRIVATE KEY-----
 BLOCK~~D-4~~API key or access token~~(sk-[a-z0-9_-]{20,}|ghp_[a-z0-9]{30,}|github_pat_[a-z0-9_]{30,}|AKIA[0-9A-Z]{16}|xox[baprs]-[a-z0-9-]{10,}|AIza[0-9a-z_-]{35}|bearer [a-z0-9._-]{25,}|eyJ[a-z0-9_-]{10,}\.eyJ[a-z0-9_-]{10,})
-BLOCK~~D-4~~Password, secret or key assigned a value~~(password|passwd|pwd|secret|api[_-]?key|access[_-]?key|token)[[:space:]]*[:=][[:space:]]*["']?[^[:space:]<{$*"'][^[:space:]"']{5,}
+# value must mix letters and digits (so "token: counter" or "token: 4096" do not match) and not start with < { $ *
+BLOCK~~D-4~~Password, secret or key assigned a value~~(password|passwd|pwd|secret|api[_-]?key|access[_-]?key|token)[[:space:]]*[:=][[:space:]]*["']?[^[:space:]<{$*"']*([a-z][^[:space:]"']*[0-9]|[0-9][^[:space:]"']*[a-z])[^[:space:]"']{3,}
 BLOCK~~D-4~~Database connection string with credentials~~((jdbc:[a-z]+|mongodb(\+srv)?|postgres(ql)?|mysql|redis|sqlserver|amqp)://[^[:space:]]*:[^[:space:]]*@|(server|data source)=[^;]*;.*(password|pwd)=)
 
 # --- D-3 / D-5: customer / production personal data (AR-06: escalate if real)
 BLOCK~~D-5~~Payment card number~~\b[0-9]{4}([ -]?[0-9]{4}){3}\b
-WARN~~D-3~~Possible customer PII (email address)~~[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}
-WARN~~D-3~~Possible customer PII (phone number)~~(\+84|\b0)[35789][0-9]{8}\b
+# a single email or phone number is normal; 3 or more on one line looks like a customer list
+WARN~~D-3~~Possible customer PII (3+ email addresses)~~([a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}.*){3,}
+WARN~~D-3~~Possible customer PII (3+ phone numbers)~~((\+84|\b0)[35789][0-9]{8}\b.*){3,}
 
 # --- D-3..D-5: classification markers
 WARN~~D-3~~Mentions confidential / secret / top-secret material~~(confidential|top[- ]secret|strictly internal)
-WARN~~D-5~~Mentions production or real customer data~~(production (data|database|db|dump|backup|logs?)|prod (db|data)|real customer|customer data|data dump)
+WARN~~D-5~~Mentions production or real customer data~~(production (data|database|db|dump|backup|logs?)|prod (db|database)|(real|actual|live) customer (data|records?)|customer (data|records?) (dump|export)|(production|full) data (dump|export))
 WARN~~D-4~~Mentions client source code, credentials or vulnerability findings~~(client'?s? source code|customer source code|vulnerabilit(y|ies) (report|finding)s?|test environment credentials|service account)
 
 # --- R-01..R-06: restricted tool categories (no internal/customer data allowed)
 WARN~~R-01~~Browser extension with AI (restricted)~~(browser|chrome|edge|firefox) extension
-WARN~~R-02~~Third-party GPT / bot / plugin / MCP server (restricted)~~(third[- ]party|custom|public) (gpt|bot|plugin|mcp)|mcp server
+WARN~~R-02~~Third-party GPT / bot / plugin / MCP server (restricted)~~(third[- ]party|public|unofficial|unknown) (gpts?|bots?|plugins?|mcp( servers?)?)|custom gpts?
 WARN~~R-03~~Autonomous / computer-use agent (restricted: sandbox + synthetic data only)~~(computer[- ]use|autonomous agent|auto-?gpt|openclaw)
 WARN~~R-04~~Personal API key / unmanaged endpoint (restricted)~~(personal api key|my own api key|unmanaged (endpoint|gateway)|openrouter)
 WARN~~R-06~~AI OCR / transcription / translation site (restricted)~~(online (ocr|transcri[a-z]*|translat[a-z]*)|free (ocr|transcri[a-z]*) (site|tool))
@@ -33,7 +35,7 @@ WARN~~AC-09~~Azure AI Foundry is Needs Review~~(azure ai foundry|microsoft found
 WARN~~AR-03~~AI tool not in the approved list (check the register)~~(deepseek|perplexity|grok|mistral|le chat|kimi|qwen|manus|poe\.com|character\.ai|huggingface chat)
 
 # --- P-05 / P-06 / P-08: prohibited behavior (needs reliable evidence to FAIL, so only flagged)
-WARN~~P-05~~Possible attempt to bypass security controls~~(bypass|evade|disable|circumvent) (the |our )?(dlp|security|access control|monitoring|antivirus|edr|firewall)
+WARN~~P-05~~Possible attempt to bypass security controls~~(bypass|evade|circumvent) (the |our |company )?(dlp|security (controls?|tools?|scans?)|access controls?|monitoring|antivirus|edr|firewall)|(disable|turn off) (the |our )?(dlp|antivirus|edr|endpoint protection|monitoring agent)
 WARN~~P-06~~Possible deepfake / impersonation~~(deepfake|voice clon|clone (my|his|her|their|the) voice|impersonat)
 WARN~~P-08~~Possible high-impact production action~~((delete|drop|truncate|wipe) [a-z ]*(prod|production)|(write|update|change) [a-z ]*production (data|database|config))
 WARN~~P-04~~Possible covert data exfiltration~~exfiltrat
