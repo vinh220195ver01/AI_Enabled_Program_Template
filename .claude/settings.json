@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      { "hooks": [ { "type": "command", "command": "bash .claude/hooks/governance-guard.sh input" } ] }
+    ],
+    "Stop": [
+      { "hooks": [ { "type": "command", "command": "bash .claude/hooks/governance-guard.sh memory; bash .claude/hooks/governance-commit.sh", "timeout": 90 } ] }
+    ]
+  }
+}
