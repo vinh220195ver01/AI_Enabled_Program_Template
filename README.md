@@ -26,10 +26,13 @@ finding (when, severity, where, rule code, issue, what to do; tick `[x]` when ha
   production data and risky behavior are logged as **NEEDS REVIEW** (not an automatic fail).
 - When the agent finishes: its local memory is scanned the same way, and so are the repo files
   that are changed, untracked or in unpushed commits (scripts included; `.claude/hooks/`,
-  `memory/` and binary files are skipped). One entry per file and rule; the file path is
-  recorded, never its content.
+  `.claude/skills/`, `memory/`, the template docs and binary files are skipped). Only files
+  that changed since the last run are scanned. A finding is recorded once per file and rule
+  while it stays flagged; fix it and a later reappearance is recorded again. The file path is
+  recorded, never its content. Scan state is kept in `.git/governance-state` (never pushed).
+- Rows from prompts are committed at the next Stop, together with the rest.
 - Right after, `governance-commit.sh` commits only `governance-checklist.md`. Other staged files
   are not touched. It never pushes: the checklist commit reaches the remote with your own push.
-- Input findings are recorded once per rule per day; memory findings once per file and content.
+- Input findings are recorded once per rule per day.
 Only the rule ID, source and file name are written, never the matched text. The scan is
 pattern-based, a safety net and not a guarantee. Tune it in `.claude/hooks/governance-rules.txt`.

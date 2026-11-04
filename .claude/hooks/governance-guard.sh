@@ -4,16 +4,24 @@
 #   governance-guard.sh stop    Stop hook: scan the agent's local memory AND the repo files
 #                               that are changed, untracked or in unpushed commits
 #                               ("memory" is accepted as an alias of "stop")
-# It never blocks. Every new finding is appended to governance-checklist.md as an open
-# checkbox for the owner to review. Only the rule ID, the source and the file path are
-# written: the matched text is never copied, so a secret is not written into a repo that
-# gets pushed.
-# Dedupe: input findings are recorded once per rule per day; memory/file findings once per
-# file, rule and matched content (a different secret in the same file is recorded again).
+# It never blocks. Every new finding is appended to governance-checklist.md as a table row
+# for the owner to review. Only the rule code, the source and the file path are written:
+# the matched text is never copied, so a secret is not written into a repo that gets pushed.
+#
+# Dedupe
+#   input:        once per rule per day.
+#   memory/files: once per file and rule WHILE IT STAYS FLAGGED. Fixing the file ends the
+#                 finding; if it is flagged again later, it is recorded again. Editing a
+#                 flagged file without fixing it (or reverting the edit) adds nothing.
+#   The scan state lives in .git/governance-state (never committed or pushed). Only files
+#   that changed since the last run are scanned, which keeps the Stop hook fast.
+#   Without that state (first run, fresh clone) a finding already listed in the checklist,
+#   in the old list format or the table format, is not recorded twice.
 # Input scan: only the "prompt" field of the hook JSON is scanned, not the metadata
 # (session id, transcript path, ...) that Claude Code sends with it.
-# Repo scan skips: .claude/hooks/ (the rules themselves), memory/ (scanned at its source),
-# governance-checklist.md, .git/, and binary files.
+# Repo scan skips: .claude/hooks/ and .claude/skills/ (the rules and skill docs), memory/
+# (scanned at its source), the template docs (README.md, CLAUDE.md, exercises/README.md,
+# exercises/_template/), governance-checklist.md, .git/, and binary files.
 # Rule level BLOCK-LUHN = BLOCK, but a match only counts if it passes the Luhn check.
 MODE="${1:-input}"
 [ "$MODE" = memory ] && MODE=stop
@@ -101,10 +109,18 @@ table_header() {
   printf '%s\n' '| Done | When | Severity | Found in | Code | Issue | Action |' '|---|---|---|---|---|---|---|'
 }
 
-# record <source> <rule-id> <level> <message> <dedupe-key>   (returns 1 if already recorded)
+# already_listed <memory|file> <path> <rule-id>: is this finding already in the checklist
+# (old list format "| memory:x | D-4 |" or table format "| Memory: x | D-4 |")?
+already_listed() {
+  [ -f "$CHECKLIST" ] || return 1
+  local lab="File"; [ "$1" = memory ] && lab="Memory"
+  grep -Fq -e "| $1:$2 | $3 |" -e "| $lab: $2 | $3 |" "$CHECKLIST"
+}
+
+# record <source> <rule-id> <level> <message> <dedupe-key or empty>   (returns 1 if already recorded)
 record() {
   local source="$1" id="$2" level="$3" msg="$4" key="$5" label action where
-  if [ -f "$CHECKLIST" ] && grep -Fq "key:$key" "$CHECKLIST"; then return 1; fi
+  if [ -n "$key" ] && [ -f "$CHECKLIST" ] && grep -Fq "key:$key" "$CHECKLIST"; then return 1; fi
   if [ "$level" = BLOCK ]; then
     label="VIOLATION"
     action="Remove or mask the data at its source; escalate to Security/Privacy/Data Owner (AR-06)"
@@ -127,8 +143,8 @@ record() {
   init_checklist
   # a checklist written in an older format has no table yet: start one
   grep -q '^| Done ' "$CHECKLIST" || { printf '\n' >> "$CHECKLIST"; table_header >> "$CHECKLIST"; }
-  printf -- '| [ ] | %s | %s | %s | %s | %s | %s <!-- key:%s --> |\n' \
-    "$(date '+%Y-%m-%d %H:%M')" "$label" "$where" "$id" "$msg" "$action" "$key" >> "$CHECKLIST"
+  printf -- '| [ ] | %s | %s | %s | %s | %s | %s%s |\n' \
+    "$(date '+%Y-%m-%d %H:%M')" "$label" "$where" "$id" "$msg" "$action" "${key:+ <!-- key:$key -->}" >> "$CHECKLIST"
 }
 
 # repo files worth scanning (relative paths): changed vs HEAD, untracked, and in unpushed commits
@@ -141,14 +157,15 @@ collect_repo_files() {
   done < <( { git -C "$ROOT" -c core.quotepath=off diff --name-only HEAD 2>/dev/null
               git -C "$ROOT" -c core.quotepath=off ls-files -o --exclude-standard 2>/dev/null
               git -C "$ROOT" -c core.quotepath=off log --name-only --format= HEAD --not --remotes=origin 2>/dev/null
-            } | sort -u | grep -vE '^(\.claude/hooks/|memory/|\.git/|governance-checklist\.md$)' )
+            } | sort -u | grep -vE '^(\.claude/hooks/|\.claude/skills/|memory/|\.git/|governance-checklist\.md$|README\.md$|CLAUDE\.md$|exercises/README\.md$|exercises/_template/)' )
 }
 
 recorded=""; sensitive=""
+OLD_STATE=""; NEW_ACTIVE=""; BOOTSTRAP=""; SCAN_FILES=()
 
-# scan_stop <kind: memory|file> <base dir>: apply every rule to the files of that source
+# scan_stop <kind: memory|file> <base dir>: apply every rule to SCAN_FILES (relative to base)
 scan_stop() {
-  local kind="$1" base="$2" line level rest id msg regex luhn files f sig
+  local kind="$1" base="$2" line level rest id msg regex luhn files f akey
   while IFS= read -r line || [ -n "$line" ]; do
     line="${line%$'\r'}"
     case "$line" in ''|'#'*) continue ;; esac
@@ -156,27 +173,74 @@ scan_stop() {
     id="${rest%%~~*}";    rest="${rest#*~~}"
     msg="${rest%%~~*}";   regex="${rest#*~~}"
     luhn=""; [ "$level" = BLOCK-LUHN ] && { luhn=1; level=BLOCK; }
-    if [ "$kind" = memory ]; then
-      files="$(cd "$base" && grep -rEIil -e "$regex" . 2>/dev/null | sed 's#^\./##' | sort -u)"
-    else
-      files="$(cd "$base" && grep -EIil -e "$regex" -- "${REPO_FILES[@]}" 2>/dev/null | sort -u)"
-    fi
+    files="$(cd "$base" && grep -EIil -e "$regex" -- "${SCAN_FILES[@]}" 2>/dev/null | sort -u)"
     [ -n "$files" ] || continue
     while IFS= read -r f; do
       if [ -n "$luhn" ] && ! grep -Eio -e "$regex" "$base/$f" 2>/dev/null | any_luhn; then continue; fi
-      sig="$(grep -Ei -e "$regex" "$base/$f" 2>/dev/null | cksum | cut -d' ' -f1)"
-      if record "$kind:$f" "$id" "$level" "$msg" "$kind:$f:$id:$msg:$sig"; then
+      akey="A|$kind:$f|$id:$msg"
+      NEW_ACTIVE="$NEW_ACTIVE$akey"$'\n'
+      # still flagged from an earlier run: nothing new
+      case $'\n'"$OLD_STATE"$'\n' in *$'\n'"$akey"$'\n'*) continue ;; esac
+      # no state yet (first run / fresh clone): do not duplicate what the checklist already lists
+      if [ -n "$BOOTSTRAP" ] && already_listed "$kind" "$f" "$id"; then continue; fi
+      if record "$kind:$f" "$id" "$level" "$msg" ""; then
         recorded="$recorded- $id $msg ($kind: $f)\n"
       fi
     done <<< "$files"
   done < "$RULES"
 }
 
+# files of <kind> whose "kind:path|mtime|size" signature is in $CHANGED
+changed_files() {
+  local kind="$1" l p
+  SCAN_FILES=()
+  while IFS= read -r l; do
+    p="${l%%|*}"
+    case "$p" in "$kind:"*) SCAN_FILES+=("${p#"$kind":}") ;; esac
+  done <<< "$CHANGED"
+}
+
 if [ "$MODE" = stop ]; then
-  if [ -n "$SRC" ] && grep -rEIiq -e "$COMBINED" "$SRC" 2>/dev/null; then scan_stop memory "$SRC"; fi
+  GITDIR="$(git -C "$ROOT" rev-parse --absolute-git-dir 2>/dev/null)"
+  STATE=""; [ -n "$GITDIR" ] && STATE="$GITDIR/governance-state"
+  if [ -n "$STATE" ] && [ -f "$STATE" ]; then OLD_STATE="$(cat "$STATE")"; else BOOTSTRAP=1; fi
+  OLD_SIGS="$(printf '%s\n' "$OLD_STATE" | sed -n 's/^S|//p')"
+
+  # current signatures (one find / one stat call for all files)
+  CUR_SIGS=""
+  [ -n "$SRC" ] && CUR_SIGS="$(find "$SRC" -type f -printf 'memory:%P|%T@|%s\n' 2>/dev/null)"
   collect_repo_files
-  if [ "${#REPO_FILES[@]}" -gt 0 ] && (cd "$ROOT" && grep -EIiq -e "$COMBINED" -- "${REPO_FILES[@]}") 2>/dev/null; then
+  if [ "${#REPO_FILES[@]}" -gt 0 ]; then
+    CUR_SIGS="$CUR_SIGS"$'\n'"$(cd "$ROOT" && stat -c 'file:%n|%Y|%s' -- "${REPO_FILES[@]}" 2>/dev/null)"
+  fi
+  CUR_SIGS="$(printf '%s\n' "$CUR_SIGS" | grep -v '^$')"
+
+  CHANGED="$(printf '%s\n' "$CUR_SIGS" | grep -vxFf <(printf '%s\n' "$OLD_SIGS"))"
+  UNCHANGED="$(printf '%s\n' "$CUR_SIGS" | grep -xFf <(printf '%s\n' "$OLD_SIGS") | grep -v '^$')"
+
+  if [ -n "$SRC" ]; then
+    changed_files memory
+    if [ "${#SCAN_FILES[@]}" -gt 0 ] && (cd "$SRC" && grep -EIiq -e "$COMBINED" -- "${SCAN_FILES[@]}") 2>/dev/null; then
+      scan_stop memory "$SRC"
+    fi
+  fi
+  changed_files file
+  if [ "${#SCAN_FILES[@]}" -gt 0 ] && (cd "$ROOT" && grep -EIiq -e "$COMBINED" -- "${SCAN_FILES[@]}") 2>/dev/null; then
     scan_stop file "$ROOT"
+  fi
+
+  # save state: all current signatures, plus the flagged findings of unchanged files (carried
+  # over) and of the files scanned now
+  if [ -n "$STATE" ]; then
+    declare -A UNCH=()
+    while IFS= read -r l; do [ -n "$l" ] && UNCH["${l%%|*}"]=1; done <<< "$UNCHANGED"
+    {
+      printf '%s\n' "$CUR_SIGS" | sed 's/^/S|/'
+      while IFS= read -r l; do
+        case "$l" in A\|*) k="${l#A|}"; k="${k%%|*}"; [ -n "${UNCH[$k]:-}" ] && printf '%s\n' "$l" ;; esac
+      done <<< "$OLD_STATE"
+      printf '%s' "$NEW_ACTIVE"
+    } > "$STATE"
   fi
 else
   printf '%s' "$PROMPT" | grep -Eiq -e "$COMBINED" || exit 0
