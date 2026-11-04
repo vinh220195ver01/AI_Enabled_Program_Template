@@ -101,6 +101,10 @@ Change `[ ]` to `[x]` when the owner has reviewed a row.
 - P-04 to P-08: prohibited behavior (sheet Prohibited)
 - AR-xx: assessor decision rules (sheet Assessor Rules)
 
+**Found in**: `Prompt` is what the trainee typed; `Agent memory (not in repo)` is a file in the
+agent's own memory folder (outside this repo); `File` is a file in this repo.
+A row marked "flagged again" means the same file and rule was flagged earlier, then fixed.
+
 HDR
   table_header >> "$CHECKLIST"
 }
@@ -113,38 +117,91 @@ table_header() {
 # (old list format "| memory:x | D-4 |" or table format "| Memory: x | D-4 |")?
 already_listed() {
   [ -f "$CHECKLIST" ] || return 1
-  local lab="File"; [ "$1" = memory ] && lab="Memory"
-  grep -Fq -e "| $1:$2 | $3 |" -e "| $lab: $2 | $3 |" "$CHECKLIST"
+  local lab="File"; [ "$1" = memory ] && lab="Agent memory (not in repo)"
+  grep -Fq -e "| $1:$2 | $3 |" -e "| $lab: $2 | $3 |" -e "| Memory: $2 | $3 |" "$CHECKLIST"
 }
 
 # record <source> <rule-id> <level> <message> <dedupe-key or empty>   (returns 1 if already recorded)
 record() {
-  local source="$1" id="$2" level="$3" msg="$4" key="$5" label action where
+  local source="$1" id="$2" level="$3" msg="$4" key="$5"
   if [ -n "$key" ] && [ -f "$CHECKLIST" ] && grep -Fq "key:$key" "$CHECKLIST"; then return 1; fi
-  if [ "$level" = BLOCK ]; then
-    label="VIOLATION"
-    action="Remove or mask the data at its source; escalate to Security/Privacy/Data Owner (AR-06)"
-  else
-    label="NEEDS REVIEW"
-    case "$id" in
-      P-*)       action="Verify what actually happened; a violation only with reliable evidence (AR-04)" ;;
-      R-*)       action="Restricted tool: no internal or customer data; get approval first (sheet Restricted)" ;;
-      AC-*|AR-*) action="Check sheet AI Tools; an unapproved tool may only handle public or synthetic data (AR-03)" ;;
-      *)         action="Check the data class, mask it or use synthetic data, get approval before using it with AI (sheet Data Policy)" ;;
-    esac
-  fi
-  case "$source" in
-    input)    where="Prompt" ;;
-    memory:*) where="Memory: ${source#memory:}" ;;
-    file:*)   where="File: ${source#file:}" ;;
-    *)        where="$source" ;;
-  esac
-  where="${where//|/\\|}"
+  migrate_checklist
+  classify "$level" "$id"
   init_checklist
-  # a checklist written in an older format has no table yet: start one
+  # a checklist without a table yet gets one
   grep -q '^| Done ' "$CHECKLIST" || { printf '\n' >> "$CHECKLIST"; table_header >> "$CHECKLIST"; }
   printf -- '| [ ] | %s | %s | %s | %s | %s | %s%s |\n' \
-    "$(date '+%Y-%m-%d %H:%M')" "$label" "$where" "$id" "$msg" "$action" "${key:+ <!-- key:$key -->}" >> "$CHECKLIST"
+    "$(date '+%Y-%m-%d %H:%M')" "$LABEL" "$(where_for "$source")" "$id" "$msg" "$ACTION" "${key:+ <!-- key:$key -->}" >> "$CHECKLIST"
+}
+
+# classify <BLOCK|WARN> <rule-id>: sets LABEL and ACTION for a table row
+classify() {
+  if [ "$1" = BLOCK ]; then
+    LABEL="VIOLATION"
+    ACTION="Remove or mask the data at its source; escalate to Security/Privacy/Data Owner (AR-06)"
+  else
+    LABEL="NEEDS REVIEW"
+    case "$2" in
+      P-*)       ACTION="Verify what actually happened; a violation only with reliable evidence (AR-04)" ;;
+      R-*)       ACTION="Restricted tool: no internal or customer data; get approval first (sheet Restricted)" ;;
+      AC-*|AR-*) ACTION="Check sheet AI Tools; an unapproved tool may only handle public or synthetic data (AR-03)" ;;
+      *)         ACTION="Check the data class, mask it or use synthetic data, get approval before using it with AI (sheet Data Policy)" ;;
+    esac
+  fi
+}
+
+# where_for <source>: text of the "Found in" column
+where_for() {
+  local w
+  case "$1" in
+    input)    w="Prompt" ;;
+    memory:*) w="Agent memory (not in repo): ${1#memory:}" ;;
+    file:*)   w="File: ${1#file:}" ;;
+    *)        w="$1" ;;
+  esac
+  printf '%s' "${w//|/\\|}"
+}
+
+trim() {
+  local s="$1"
+  s="${s#"${s%%[![:space:]]*}"}"; s="${s%"${s##*[![:space:]]}"}"
+  printf '%s' "$s"
+}
+
+# migrate_checklist: bring a checklist written by an older version up to date, once:
+#  - list rows ("- [ ] when | source | code | decision | issue") become table rows, placed at the
+#    top of the table, keeping a ticked [x]
+#  - the old "Memory:" label becomes "Agent memory (not in repo):"
+#  - dedupe comments of memory/file rows are removed (those rows are not deduped by key any more)
+migrate_checklist() {
+  [ -f "$CHECKLIST" ] || return 0
+  grep -qE '^- \[[ x]\] |\| Memory: |key:(memory|file):' "$CHECKLIST" || return 0
+  local line mark when src id decision msg rest level rows="" inserted="" tmp="$CHECKLIST.tmp"
+  while IFS= read -r line || [ -n "$line" ]; do
+    line="${line%$'\r'}"
+    case "$line" in
+      '- [ ] '*|'- [x] '*)
+        mark="${line:3:1}"; line="${line:6}"
+        IFS='|' read -r when src id decision msg rest <<< "$line"
+        when="$(trim "$when")"; src="$(trim "$src")"; id="$(trim "$id")"; decision="$(trim "$decision")"; msg="$(trim "$msg")"
+        level=WARN; case "$decision" in VIOLATION*) level=BLOCK ;; esac
+        classify "$level" "$id"
+        rows="$rows| [$mark] | $when | $LABEL | $(where_for "$src") | $id | $msg | $ACTION |"$'\n'
+        ;;
+    esac
+  done < "$CHECKLIST"
+  : > "$tmp"
+  while IFS= read -r line || [ -n "$line" ]; do
+    line="${line%$'\r'}"
+    case "$line" in '- [ ] '*|'- [x] '*) continue ;; esac
+    printf '%s\n' "$line" >> "$tmp"
+    if [ -z "$inserted" ] && [ "${line:0:5}" = '|---|' ]; then printf '%s' "$rows" >> "$tmp"; inserted=1; fi
+  done < "$CHECKLIST"
+  if [ -z "$inserted" ] && [ -n "$rows" ]; then
+    printf '\n' >> "$tmp"; table_header >> "$tmp"; printf '%s' "$rows" >> "$tmp"
+  fi
+  sed -E 's/ <!-- key:(memory|file):[^>]*-->//; s/\| Memory: /| Agent memory (not in repo): /' "$tmp" > "$CHECKLIST"
+  rm -f "$tmp"
 }
 
 # repo files worth scanning (relative paths): changed vs HEAD, untracked, and in unpushed commits
@@ -165,7 +222,7 @@ OLD_STATE=""; NEW_ACTIVE=""; BOOTSTRAP=""; SCAN_FILES=()
 
 # scan_stop <kind: memory|file> <base dir>: apply every rule to SCAN_FILES (relative to base)
 scan_stop() {
-  local kind="$1" base="$2" line level rest id msg regex luhn files f akey
+  local kind="$1" base="$2" line level rest id msg regex luhn files f akey note
   while IFS= read -r line || [ -n "$line" ]; do
     line="${line%$'\r'}"
     case "$line" in ''|'#'*) continue ;; esac
@@ -181,9 +238,14 @@ scan_stop() {
       NEW_ACTIVE="$NEW_ACTIVE$akey"$'\n'
       # still flagged from an earlier run: nothing new
       case $'\n'"$OLD_STATE"$'\n' in *$'\n'"$akey"$'\n'*) continue ;; esac
-      # no state yet (first run / fresh clone): do not duplicate what the checklist already lists
-      if [ -n "$BOOTSTRAP" ] && already_listed "$kind" "$f" "$id"; then continue; fi
-      if record "$kind:$f" "$id" "$level" "$msg" ""; then
+      # already in the checklist: with no state yet (first run / fresh clone) do not duplicate it;
+      # otherwise it was fixed and is flagged again, so record it and say so
+      note=""
+      if already_listed "$kind" "$f" "$id"; then
+        [ -n "$BOOTSTRAP" ] && continue
+        note=" (flagged again after an earlier fix)"
+      fi
+      if record "$kind:$f" "$id" "$level" "$msg$note" ""; then
         recorded="$recorded- $id $msg ($kind: $f)\n"
       fi
     done <<< "$files"

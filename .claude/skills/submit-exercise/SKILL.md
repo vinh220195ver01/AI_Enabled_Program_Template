@@ -20,7 +20,8 @@ their go-ahead for the agent to run the steps below.
    Files deleted from the agent's memory are deleted from `memory/` too.
    If the agent has no memory yet, `memory/` is left as is; the submission is still valid.
 2. Stages `memory/` and commits it on the **current branch**, together with anything
-   already staged, with message `submit: <exercise name> + agent memory`.
+   already staged, with message `submit: <exercise name> + agent memory` (or just
+   `submit: <exercise name>` when memory did not change).
 3. Shows every file in the commit. The memory is committed raw and unfiltered.
 
 ## Steps for the agent
@@ -48,7 +49,8 @@ their go-ahead for the agent to run the steps below.
      echo "[submit] nothing to commit"
    else
      echo "[submit] files in this commit:"; git -C "$ROOT" diff --cached --name-status
-     git -C "$ROOT" commit -q -m "submit: $NAME + agent memory" \
+     if git -C "$ROOT" diff --cached --quiet -- memory; then MSG="submit: $NAME"; else MSG="submit: $NAME + agent memory"; fi
+     git -C "$ROOT" commit -q -m "$MSG" \
        && echo "[submit] committed on branch '$(git -C "$ROOT" branch --show-current)'"
    fi
    ```
