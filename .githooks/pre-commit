@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Governance scan on every commit, whatever AI tool or editor runs `git commit`.
+# Scans the staged files, records findings in governance-checklist.md and adds the checklist
+# to the commit. It never blocks the commit.
+# Enable once per clone:  git config core.hooksPath .githooks
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+[ -f "$ROOT/.claude/hooks/governance-guard.sh" ] || exit 0
+bash "$ROOT/.claude/hooks/governance-guard.sh" commit < /dev/null
+exit 0

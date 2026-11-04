@@ -7,8 +7,12 @@
 # --- D-4 / D-5 / R-04 / P-03: secrets, keys, tokens, credentials
 BLOCK~~D-5~~Private key material~~-----BEGIN [A-Z ]*PRIVATE KEY-----
 BLOCK~~D-4~~API key or access token~~(sk-[a-z0-9_-]{20,}|ghp_[a-z0-9]{30,}|github_pat_[a-z0-9_]{30,}|AKIA[0-9A-Z]{16}|xox[baprs]-[a-z0-9-]{10,}|AIza[0-9a-z_-]{35}|bearer [a-z0-9._-]{25,}|eyJ[a-z0-9_-]{10,}\.eyJ[a-z0-9_-]{10,})
-# value must mix letters and digits (so "token: counter" or "token: 4096" do not match) and not start with < { $ *
-BLOCK~~D-4~~Password, secret or key assigned a value~~(password|passwd|pwd|secret|api[_-]?key|access[_-]?key|token)[[:space:]]*[:=][[:space:]]*["']?[^[:space:]<{$*"']*([a-z][^[:space:]"']*[0-9]|[0-9][^[:space:]"']*[a-z])[^[:space:]"']{3,}
+# keyword (English or Vietnamese) + ":" or "=" or "is" / "là" / "của mình là"... + a value.
+# The value must mix letters with a digit or one of @#!%^& (so "token: counter" or "token: 4096" do not
+# match) and must not start with < { $ * (placeholders such as <password> or ${PASSWORD}).
+BLOCK~~D-4~~Password, secret or key assigned a value~~(password|passwd|passcode|pwd|\bpw|secret|api[_-]?key|access[_-]?key|token|mật khẩu|mat khau|matkhau)([[:space:]]*[:=][[:space:]]*|[[:space:]]+((của|cua) (mình|minh|tôi|toi|em|anh|chị|chi|bạn|ban)[[:space:]]+)?(is|là|la):?[[:space:]]+)["']?[^[:space:]<{$*"']*([a-z][^[:space:]"']*[0-9@#!%^&]|[0-9@#!%^&][^[:space:]"']*[a-z])[^[:space:]"']{3,}
+# numeric-only password (PIN style), only for password keywords
+BLOCK~~D-4~~Numeric password assigned a value~~(password|passwd|passcode|pwd|\bpw|mật khẩu|mat khau|matkhau)([[:space:]]*[:=][[:space:]]*|[[:space:]]+((của|cua) (mình|minh|tôi|toi|em|anh|chị|chi|bạn|ban)[[:space:]]+)?(is|là|la):?[[:space:]]+)["']?[0-9]{6,}\b
 BLOCK~~D-4~~Database connection string with credentials~~((jdbc:[a-z]+|mongodb(\+srv)?|postgres(ql)?|mysql|redis|sqlserver|amqp)://[^[:space:]]*:[^[:space:]]*@|(server|data source)=[^;]*;.*(password|pwd)=)
 
 # --- D-3 / D-5: customer / production personal data (AR-06: escalate if real)

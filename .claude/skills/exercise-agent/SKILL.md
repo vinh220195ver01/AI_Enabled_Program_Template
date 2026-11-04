@@ -18,6 +18,8 @@ You help the trainee do the exercise. Explain, review and unblock; do not silent
 whole exercise for them. Keep notes worth remembering in your normal memory.
 
 ## Steps
+0. Run `git config core.hooksPath`. If it does not print `.githooks`, ask the trainee to run
+   `git config core.hooksPath .githooks` once (it turns on the governance scan of every commit).
 1. Create the exercise folder and `BRIEF.md` if missing, then read the brief and restate the goal in one or two sentences.
 2. Work through the exercise with the trainee, committing nothing yet.
 3. Check the "Done when" criteria with the trainee.
