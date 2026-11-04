@@ -4,6 +4,13 @@
 #   governance-guard.sh stop    Stop hook: scan the agent's local memory AND the repo files
 #                               that are changed, untracked or in unpushed commits
 #                               ("memory" is accepted as an alias of "stop")
+#   governance-guard.sh commit  git pre-commit hook (.githooks/pre-commit), works with ANY AI
+#                               tool or editor: scan the staged content of the files in the
+#                               commit (memory/ included) and add the checklist to the commit
+#   governance-guard.sh note <CODE>
+#                               for any AI agent (see AGENTS.md): record that the user's
+#                               message contained data of rule <CODE> (D-3, D-4, D-5, R-0x,
+#                               P-0x, AC-xx, AR-xx). Only the code is passed, never the data.
 # It never blocks. Every new finding is appended to governance-checklist.md as a table row
 # for the owner to review. Only the rule code, the source and the file path are written:
 # the matched text is never copied, so a secret is not written into a repo that gets pushed.
@@ -29,7 +36,9 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
 RULES="$HERE/governance-rules.txt"
 CHECKLIST="$ROOT/governance-checklist.md"
-INPUT="$(cat)"
+# only the Claude Code hooks get JSON on stdin; never wait on stdin in the other modes
+INPUT=""
+case "$MODE" in input|stop) INPUT="$(cat)" ;; esac
 TODAY="$(date '+%Y-%m-%d')"
 
 # text to scan in input mode: everything after the "prompt" key (falls back to the whole input)
@@ -155,6 +164,7 @@ where_for() {
   local w
   case "$1" in
     input)    w="Prompt" ;;
+    agent)    w="Prompt (reported by the agent)" ;;
     memory:*) w="Agent memory (not in repo): ${1#memory:}" ;;
     file:*)   w="File: ${1#file:}" ;;
     *)        w="$1" ;;
@@ -214,10 +224,34 @@ collect_repo_files() {
   done < <( { git -C "$ROOT" -c core.quotepath=off diff --name-only HEAD 2>/dev/null
               git -C "$ROOT" -c core.quotepath=off ls-files -o --exclude-standard 2>/dev/null
               git -C "$ROOT" -c core.quotepath=off log --name-only --format= HEAD --not --remotes=origin 2>/dev/null
-            } | sort -u | grep -vE '^(\.claude/hooks/|\.claude/skills/|memory/|\.git/|governance-checklist\.md$|README\.md$|CLAUDE\.md$|exercises/README\.md$|exercises/_template/)' )
+            } | sort -u | grep -vE '^(\.claude/hooks/|\.claude/skills/|\.githooks/|memory/|\.git/|governance-checklist\.md$|README\.md$|CLAUDE\.md$|AGENTS\.md$|exercises/README\.md$|exercises/_template/)' )
 }
 
 recorded=""; sensitive=""
+
+# note mode: an AI agent reports a finding by rule code only (see AGENTS.md)
+if [ "$MODE" = note ]; then
+  id="${2:-}"
+  case "$id" in
+    D-3|D-4|D-5|R-0[1-6]|P-0[1-8]|AC-[0-9][0-9]|AR-0[1-7]) ;;
+    *) echo "usage: bash .claude/hooks/governance-guard.sh note <CODE>   (CODE: D-3 D-4 D-5 R-01..R-06 P-01..P-08 AC-xx AR-xx; see AGENTS.md)" >&2; exit 2 ;;
+  esac
+  case "$id" in D-4|D-5) level=BLOCK ;; *) level=WARN ;; esac
+  case "$id" in
+    D-3) msg="Reported by the agent: confidential data (customer PII, client documents)" ;;
+    D-4) msg="Reported by the agent: secret data (password, token, key, credential)" ;;
+    D-5) msg="Reported by the agent: top secret data (card number, production or real customer data)" ;;
+    R-*) msg="Reported by the agent: restricted tool used or requested" ;;
+    P-*) msg="Reported by the agent: possibly prohibited behavior requested" ;;
+    *)   msg="Reported by the agent: AI tool not approved for this data" ;;
+  esac
+  if record "agent" "$id" "$level" "$msg" "note:$TODAY:$id"; then
+    echo "GOVERNANCE: recorded $id in governance-checklist.md"
+  else
+    echo "GOVERNANCE: $id was already recorded today"
+  fi
+  exit 0
+fi
 OLD_STATE=""; NEW_ACTIVE=""; BOOTSTRAP=""; SCAN_FILES=()
 
 # scan_stop <kind: memory|file> <base dir>: apply every rule to SCAN_FILES (relative to base)
@@ -304,6 +338,27 @@ if [ "$MODE" = stop ]; then
       printf '%s' "$NEW_ACTIVE"
     } > "$STATE"
   fi
+elif [ "$MODE" = commit ]; then
+  # scan what is actually being committed: the staged content, exported to a temp folder
+  TMPD="$(mktemp -d 2>/dev/null)" || TMPD="${TMPDIR:-/tmp}/governance.$$"
+  mkdir -p "$TMPD"
+  SCAN_FILES=()
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    mkdir -p "$TMPD/$(dirname "$f")"
+    git -C "$ROOT" show ":$f" > "$TMPD/$f" 2>/dev/null && SCAN_FILES+=("$f")
+  done < <(git -C "$ROOT" -c core.quotepath=off diff --cached --name-only --diff-filter=ACMR 2>/dev/null \
+           | grep -vE '^(\.claude/hooks/|\.claude/skills/|\.githooks/|\.git/|governance-checklist\.md$|README\.md$|CLAUDE\.md$|AGENTS\.md$|exercises/README\.md$|exercises/_template/)')
+  # a file and rule already listed in the checklist is not recorded again
+  BOOTSTRAP=1
+  if [ "${#SCAN_FILES[@]}" -gt 0 ] && (cd "$TMPD" && grep -EIiq -e "$COMBINED" -- "${SCAN_FILES[@]}") 2>/dev/null; then
+    scan_stop file "$TMPD"
+  fi
+  rm -rf "$TMPD"
+  # the checklist (new rows from this scan, the agent's notes, the prompt hook) goes into this commit
+  if [ -f "$CHECKLIST" ] && [ -n "$(git -C "$ROOT" status --porcelain -- governance-checklist.md 2>/dev/null)" ]; then
+    git -C "$ROOT" add -- governance-checklist.md > /dev/null 2>&1 && checklist_added=1
+  fi
 else
   printf '%s' "$PROMPT" | grep -Eiq -e "$COMBINED" || exit 0
   while IFS= read -r line || [ -n "$line" ]; do
@@ -333,6 +388,11 @@ if [ "$MODE" = input ]; then
   out="\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":\"$(json_escape "$ctx")\"}"
   [ -n "$recorded" ] && out="\"systemMessage\":\"$(json_escape "GOVERNANCE: recorded in governance-checklist.md:\n$recorded")\",$out"
   printf '{%s}\n' "$out"
+elif [ "$MODE" = commit ]; then
+  # plain text for the terminal / the tool that ran git commit; the commit is never blocked
+  [ -n "$recorded" ] && printf '%b' "GOVERNANCE (pre-commit): recorded in governance-checklist.md:\n$recorded" >&2
+  [ -n "${checklist_added:-}" ] && echo "GOVERNANCE (pre-commit): governance-checklist.md added to this commit" >&2
+  exit 0
 else
   [ -n "$recorded" ] || exit 0
   printf '{"systemMessage":"%s"}\n' "$(json_escape "GOVERNANCE: recorded in governance-checklist.md:\n$recorded")"
