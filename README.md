@@ -7,13 +7,6 @@ Starter kit for trainees.
 - `.claude/skills/submit-exercise/` — the last step of every exercise: `/submit-exercise <exercise name>`.
 - `.claude/skills/exercise-agent/` — template for the agent that guides one exercise and ends with the submit step.
 - `.claude/hooks/` + `.claude/settings.json` — governance guard (see below); rules in `governance-rules.txt`.
-- `AGENTS.md` — governance instructions that any AI agent (Copilot, Cursor, Antigravity, ...) follows in this repo.
-- `.githooks/pre-commit` — governance scan on every commit, whatever tool makes it.
-
-## Setup (once, after you clone your repo)
-Turn on the commit scan, whatever AI tool you use:
-
-    git config core.hooksPath .githooks
 
 ## Data notice
 `/submit-exercise` copies your agent's **local memory** (Claude Code:
@@ -25,26 +18,7 @@ Do not keep real passwords, keys or personal data in your memory. If the repo is
 what you push is public.
 
 ## Governance guard
-Three layers apply the *AI-Enabled QA Governance* register v0.1. None of them blocks you.
-
-| Layer | Works with | Scans | Reliability |
-|---|---|---|---|
-| Claude Code hooks (`.claude/settings.json`) | Claude Code only | prompts, agent memory, changed files | automatic |
-| `AGENTS.md` + `governance-guard.sh note <CODE>` | AI agents that can run commands | prompts (the agent checks them) | best effort: an agent can miss one |
-| git `pre-commit` (`.githooks/`) | any tool, once enabled (see Setup) | the staged files of each commit, `memory/` included | automatic, unless bypassed with `--no-verify` |
-
-No layer can scan what you paste into a web chat that has no access to this repo: use
-synthetic data only.
-
-**Commit scan:** every `git commit` scans the staged content, records findings in
-`governance-checklist.md` and adds the checklist to that same commit. A file and rule already
-listed is not recorded again.
-
-**Agent notes:** an agent that notices sensitive data in your message runs
-`bash .claude/hooks/governance-guard.sh note <CODE>`. Only the rule code is recorded (once per
-code per day); the row says "Prompt (reported by the agent)".
-
-**Claude Code hooks:** they never
+Hooks (`.claude/settings.json`) apply the *AI-Enabled QA Governance* register v0.1. They never
 block you; they **record** findings in `governance-checklist.md`, a table with one row per
 finding (when, severity, where, rule code, issue, what to do; tick `[x]` when handled):
 - Before each prompt: your input is scanned (the prompt text only). Secrets, keys, connection

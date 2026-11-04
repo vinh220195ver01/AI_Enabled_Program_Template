@@ -2,4 +2,3 @@
 hooks/* text eol=lf
 *.sh text eol=lf
 .claude/hooks/* text eol=lf
-.githooks/* text eol=lf
