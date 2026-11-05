@@ -36,8 +36,10 @@ Rules for recording:
 - Pass **only the code**. Never put the data itself in the command, in a file, in a commit
   message or in your memory.
 - One finding per code is enough; the script ignores a code already recorded today.
-- If `bash` is not found (for example in a Windows PowerShell terminal), use the Git for Windows
-  bash: `& "C:\Program Files\Git\bin\bash.exe" .claude/hooks/governance-guard.sh note <CODE>`.
+- In a Windows PowerShell terminal `bash` is often not on PATH. Run the wrapper instead; it finds
+  Git for Windows' bash wherever it is installed. Do not guess install paths:
+
+      powershell -NoProfile -File .claude/hooks/governance-note.ps1 <CODE>
 - If you cannot run commands, ask the user to run the command above.
 - Then tell the user, in one short sentence, what kind of data you noticed (never repeat it),
   that it was recorded in `governance-checklist.md`, and that they should mask it or use

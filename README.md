@@ -10,6 +10,7 @@ Starter kit for trainees.
 - `AGENTS.md` — governance instructions that any AI agent (Copilot, Cursor, Antigravity, ...) follows in this repo.
 - `.github/copilot-instructions.md` — points GitHub Copilot to `AGENTS.md` (Copilot loads this file automatically).
 - `.githooks/pre-commit` — governance scan on every commit, whatever tool makes it.
+- `.claude/hooks/governance-note.ps1` — PowerShell wrapper an agent uses to record a finding when `bash` is not on PATH.
 
 ## Setup (once, after you clone your repo)
 Turn on the commit scan, whatever AI tool you use:
