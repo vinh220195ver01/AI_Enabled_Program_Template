@@ -8,6 +8,7 @@ Starter kit for trainees.
 - `.claude/skills/exercise-agent/` — template for the agent that guides one exercise and ends with the submit step.
 - `.claude/hooks/` + `.claude/settings.json` — governance guard (see below); rules in `governance-rules.txt`.
 - `AGENTS.md` — governance instructions that any AI agent (Copilot, Cursor, Antigravity, ...) follows in this repo.
+- `.github/copilot-instructions.md` — points GitHub Copilot to `AGENTS.md` (Copilot loads this file automatically).
 - `.githooks/pre-commit` — governance scan on every commit, whatever tool makes it.
 
 ## Setup (once, after you clone your repo)

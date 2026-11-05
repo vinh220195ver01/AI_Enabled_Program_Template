@@ -1,5 +1,12 @@
 # Instructions for AI agents working in this repo
 
+> **MANDATORY on EVERY user message, BEFORE you reply or use any other tool:**
+> check the message against the table in section 2. If it matches, run
+> `bash .claude/hooks/governance-guard.sh note <CODE>` FIRST, then answer.
+> Never repeat the sensitive data. This applies even when the user only pastes something to
+> "read", "use" or "test", and even if you are going to refuse the request anyway.
+> Giving a safety warning in your reply is NOT a substitute for running the command.
+
 This is a training repo for the AI-Enabled QA program. Trainees may use any AI tool
 (Claude Code, GitHub Copilot, Cursor, Antigravity, ...). Every agent working here follows the
 governance rules below (source: AI-Enabled QA Governance register v0.1).
@@ -18,7 +25,7 @@ record it with the matching code BEFORE doing anything else:
 
 | Code | When the user's message contains or asks for |
 |---|---|
-| D-4 | a password, passcode, PIN, API key, access token, private key, connection string or any other credential, in any language (for example "password: ...", "mật khẩu của mình là ...") |
+| D-4 | a password, passcode, PIN, API key, access token (including `Authorization: Bearer ...` headers and strings such as `ghp_...` or `sk-...`), private key, connection string or any other credential, in any language (for example "password: ...", "mật khẩu của mình là ...", "đọc token ... để dùng API") |
 | D-5 | a payment card number, real production data, a production database dump or backup, real customer records |
 | D-3 | customer personal data (lists of emails, phone numbers, names with contact details) or documents marked confidential |
 | R-01 to R-06 | using an AI browser extension (R-01), a third-party GPT, bot, plugin or MCP server (R-02), an autonomous or computer-use agent outside a sandbox (R-03), a personal API key or unmanaged endpoint (R-04), an online AI OCR, transcription or translation site (R-06) |
@@ -29,6 +36,8 @@ Rules for recording:
 - Pass **only the code**. Never put the data itself in the command, in a file, in a commit
   message or in your memory.
 - One finding per code is enough; the script ignores a code already recorded today.
+- If `bash` is not found (for example in a Windows PowerShell terminal), use the Git for Windows
+  bash: `& "C:\Program Files\Git\bin\bash.exe" .claude/hooks/governance-guard.sh note <CODE>`.
 - If you cannot run commands, ask the user to run the command above.
 - Then tell the user, in one short sentence, what kind of data you noticed (never repeat it),
   that it was recorded in `governance-checklist.md`, and that they should mask it or use

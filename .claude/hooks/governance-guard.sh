@@ -224,7 +224,7 @@ collect_repo_files() {
   done < <( { git -C "$ROOT" -c core.quotepath=off diff --name-only HEAD 2>/dev/null
               git -C "$ROOT" -c core.quotepath=off ls-files -o --exclude-standard 2>/dev/null
               git -C "$ROOT" -c core.quotepath=off log --name-only --format= HEAD --not --remotes=origin 2>/dev/null
-            } | sort -u | grep -vE '^(\.claude/hooks/|\.claude/skills/|\.githooks/|memory/|\.git/|governance-checklist\.md$|README\.md$|CLAUDE\.md$|AGENTS\.md$|exercises/README\.md$|exercises/_template/)' )
+            } | sort -u | grep -vE '^(\.claude/hooks/|\.claude/skills/|\.githooks/|\.github/copilot-instructions\.md$|memory/|\.git/|governance-checklist\.md$|README\.md$|CLAUDE\.md$|AGENTS\.md$|exercises/README\.md$|exercises/_template/)' )
 }
 
 recorded=""; sensitive=""
@@ -348,7 +348,7 @@ elif [ "$MODE" = commit ]; then
     mkdir -p "$TMPD/$(dirname "$f")"
     git -C "$ROOT" show ":$f" > "$TMPD/$f" 2>/dev/null && SCAN_FILES+=("$f")
   done < <(git -C "$ROOT" -c core.quotepath=off diff --cached --name-only --diff-filter=ACMR 2>/dev/null \
-           | grep -vE '^(\.claude/hooks/|\.claude/skills/|\.githooks/|\.git/|governance-checklist\.md$|README\.md$|CLAUDE\.md$|AGENTS\.md$|exercises/README\.md$|exercises/_template/)')
+           | grep -vE '^(\.claude/hooks/|\.claude/skills/|\.githooks/|\.github/copilot-instructions\.md$|\.git/|governance-checklist\.md$|README\.md$|CLAUDE\.md$|AGENTS\.md$|exercises/README\.md$|exercises/_template/)')
   # a file and rule already listed in the checklist is not recorded again
   BOOTSTRAP=1
   if [ "${#SCAN_FILES[@]}" -gt 0 ] && (cd "$TMPD" && grep -EIiq -e "$COMBINED" -- "${SCAN_FILES[@]}") 2>/dev/null; then
