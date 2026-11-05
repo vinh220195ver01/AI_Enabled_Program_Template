@@ -44,7 +44,9 @@ listed is not recorded again.
 
 **Agent notes:** an agent that notices sensitive data in your message runs
 `bash .claude/hooks/governance-guard.sh note <CODE>`. Only the rule code is recorded (once per
-code per day); the row says "Prompt (reported by the agent)".
+code per day); the row says "Prompt (reported by the agent)". The command then commits
+`governance-checklist.md` (that file only, never pushed), and `/submit-exercise` also stages the
+checklist if it still has uncommitted findings.
 
 **Claude Code hooks:** they never
 block you; they **record** findings in `governance-checklist.md`, a table with one row per

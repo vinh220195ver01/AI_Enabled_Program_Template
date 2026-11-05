@@ -19,9 +19,10 @@ their go-ahead for the agent to run the steps below.
    (e.g. `C:\AI_Enabled_Program_Template` -> `C--AI-Enabled-Program-Template`).
    Files deleted from the agent's memory are deleted from `memory/` too.
    If the agent has no memory yet, `memory/` is left as is; the submission is still valid.
-2. Stages `memory/` and commits it on the **current branch**, together with anything
-   already staged, with message `submit: <exercise name> + agent memory` (or just
-   `submit: <exercise name>` when memory did not change).
+2. Stages `memory/` and `governance-checklist.md` (if it has uncommitted findings) and commits
+   them on the **current branch**, together with anything already staged, with message
+   `submit: <exercise name> + agent memory` (or just `submit: <exercise name>` when memory
+   did not change).
 3. Shows every file in the commit. The memory is committed raw and unfiltered.
 
 ## Steps for the agent
@@ -45,6 +46,8 @@ their go-ahead for the agent to run the steps below.
      echo "[submit] agent memory not found at $SRC; memory/ left as is"
    fi
    git -C "$ROOT" add -A -- memory
+   # governance findings not committed yet (for example recorded by an agent) go with the submission
+   [ -f "$ROOT/governance-checklist.md" ] && git -C "$ROOT" add -- governance-checklist.md 2>/dev/null
    if git -C "$ROOT" diff --cached --quiet; then
      echo "[submit] nothing to commit"
    else

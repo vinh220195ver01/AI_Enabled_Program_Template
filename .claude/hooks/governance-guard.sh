@@ -11,6 +11,7 @@
 #                               for any AI agent (see AGENTS.md): record that the user's
 #                               message contained data of rule <CODE> (D-3, D-4, D-5, R-0x,
 #                               P-0x, AC-xx, AR-xx). Only the code is passed, never the data.
+#                               The checklist is then committed (that file only, never pushed).
 # It never blocks. Every new finding is appended to governance-checklist.md as a table row
 # for the owner to review. Only the rule code, the source and the file path are written:
 # the matched text is never copied, so a secret is not written into a repo that gets pushed.
@@ -250,6 +251,9 @@ if [ "$MODE" = note ]; then
   else
     echo "GOVERNANCE: $id was already recorded today"
   fi
+  # outside Claude Code there is no "agent finished" event, so commit the checklist now
+  # (only that file, never pushed), like governance-commit.sh does at the end of a Claude Code turn
+  bash "$HERE/governance-commit.sh" < /dev/null
   exit 0
 fi
 OLD_STATE=""; NEW_ACTIVE=""; BOOTSTRAP=""; SCAN_FILES=()
