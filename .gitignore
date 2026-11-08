@@ -1,2 +1,4 @@
-
-
+# personal Claude Code settings (permissions etc.), not part of the template
+.claude/settings.local.json
+# temp file of the governance guard
+governance-checklist.md.tmp

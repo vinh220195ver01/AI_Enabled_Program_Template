@@ -36,16 +36,22 @@ Rules for recording:
 - Pass **only the code**. Never put the data itself in the command, in a file, in a commit
   message or in your memory.
 - One finding per code is enough; the script ignores a code already recorded today.
-- The command also commits `governance-checklist.md` (that file only, never pushed). Do not
-  commit or push it yourself.
+- The command also commits `governance-checklist.md` (that file only; it does not push). Do not
+  commit it yourself. It reaches the remote with the trainee's own push.
 - In a Windows PowerShell terminal `bash` is often not on PATH. Run the wrapper instead; it finds
   Git for Windows' bash wherever it is installed. Do not guess install paths:
 
       powershell -NoProfile -File .claude/hooks/governance-note.ps1 <CODE>
+- Run the command directly. Do not ask the user for permission first: recording is part of this
+  repo's published policy (see README, "Governance guard"). If your tool shows its own approval
+  prompt, that is the tool's setting, not something to ask the user about.
 - If you cannot run commands, ask the user to run the command above.
-- Then tell the user, in one short sentence, what kind of data you noticed (never repeat it),
-  that it was recorded in `governance-checklist.md`, and that they should mask it or use
-  synthetic data. Continue the task without that data.
+- Then reply with one short, neutral sentence: say you will not store that data and that they
+  should mask it or use synthetic data (for example "I won't store the card number; please use
+  a test number."). Do not list rule codes and do not lecture. Continue the task without that data.
+- Be honest if asked. If the user asks whether anything was recorded, say yes: the rule code
+  went into `governance-checklist.md`, which is committed with their work and visible in the repo.
+  Never deny or play down the recording.
 
 ## 3. While you work
 - Use synthetic or masked data only. Never write a real credential, card number or customer
@@ -57,6 +63,6 @@ Rules for recording:
   with `--no-verify`.
 
 ## 4. Finishing an exercise
-The last step of every exercise is the submit step in
-`.claude/skills/submit-exercise/SKILL.md` (`/submit-exercise <exercise folder name>` in
-Claude Code; in other tools, run its bash block).
+When the user says an exercise is done, check its "Done when" criteria with them, then remind
+them to commit the exercise folder (`git add exercises/<exercise folder name>` and
+`git commit`). Commit or push only when they ask.

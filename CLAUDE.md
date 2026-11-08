@@ -1,4 +1,11 @@
 # AI_Enabled_Program_Template
 
-## Finishing an exercise
-When the trainee says an exercise is done, remind them that the last step is `/submit-exercise <exercise name>`. It commits their agent memory with the exercise. Do not run it unless they ask.
+Follow the shared instructions for every AI agent in this repo (setup check, data rules,
+finishing an exercise):
+
+@AGENTS.md
+
+## Claude Code specifics
+The hooks in `.claude/settings.json` already scan every prompt, your memory and the changed
+files. Still run the section 2 `note` command when a message matches: if the prompt scan
+already recorded that code today, the script says so and adds nothing.

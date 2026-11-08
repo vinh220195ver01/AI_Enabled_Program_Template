@@ -6,18 +6,20 @@
 #                               ("memory" is accepted as an alias of "stop")
 #   governance-guard.sh commit  git pre-commit hook (.githooks/pre-commit), works with ANY AI
 #                               tool or editor: scan the staged content of the files in the
-#                               commit (memory/ included) and add the checklist to the commit
+#                               commit and add the checklist to the commit
 #   governance-guard.sh note <CODE>
 #                               for any AI agent (see AGENTS.md): record that the user's
 #                               message contained data of rule <CODE> (D-3, D-4, D-5, R-0x,
 #                               P-0x, AC-xx, AR-xx). Only the code is passed, never the data.
-#                               The checklist is then committed (that file only, never pushed).
+#                               The checklist is then committed (that file only; nothing is
+#                               pushed). A code the prompt hook already recorded today, or an
+#                               earlier note, is not recorded again.
 # It never blocks. Every new finding is appended to governance-checklist.md as a table row
 # for the owner to review. Only the rule code, the source and the file path are written:
 # the matched text is never copied, so a secret is not written into a repo that gets pushed.
 #
 # Dedupe
-#   input:        once per rule per day.
+#   input / note: once per rule per day.
 #   memory/files: once per file and rule WHILE IT STAYS FLAGGED. Fixing the file ends the
 #                 finding; if it is flagged again later, it is recorded again. Editing a
 #                 flagged file without fixing it (or reverting the edit) adds nothing.
@@ -27,9 +29,10 @@
 #   in the old list format or the table format, is not recorded twice.
 # Input scan: only the "prompt" field of the hook JSON is scanned, not the metadata
 # (session id, transcript path, ...) that Claude Code sends with it.
-# Repo scan skips: .claude/hooks/ and .claude/skills/ (the rules and skill docs), memory/
-# (scanned at its source), the template docs (README.md, CLAUDE.md, exercises/README.md,
-# exercises/_template/), governance-checklist.md, .git/, and binary files.
+# Never scanned (SKIP_RX): the guard itself (.claude/hooks/, .githooks/), the template's own docs
+# and skills (README.md, CLAUDE.md, AGENTS.md, .github/copilot-instructions.md,
+# exercises/README.md, exercises/_template/, the exercise-agent skill), governance-checklist.md,
+# .git/ and binary files.
 # Rule level BLOCK-LUHN = BLOCK, but a match only counts if it passes the Luhn check.
 MODE="${1:-input}"
 [ "$MODE" = memory ] && MODE=stop
@@ -37,6 +40,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
 RULES="$HERE/governance-rules.txt"
 CHECKLIST="$ROOT/governance-checklist.md"
+SKIP_RX='^(\.claude/hooks/|\.claude/skills/exercise-agent/|\.githooks/|\.github/copilot-instructions\.md$|\.git/|governance-checklist\.md$|README\.md$|CLAUDE\.md$|AGENTS\.md$|exercises/README\.md$|exercises/_template/)'
 # only the Claude Code hooks get JSON on stdin; never wait on stdin in the other modes
 INPUT=""
 case "$MODE" in input|stop) INPUT="$(cat)" ;; esac
@@ -225,7 +229,7 @@ collect_repo_files() {
   done < <( { git -C "$ROOT" -c core.quotepath=off diff --name-only HEAD 2>/dev/null
               git -C "$ROOT" -c core.quotepath=off ls-files -o --exclude-standard 2>/dev/null
               git -C "$ROOT" -c core.quotepath=off log --name-only --format= HEAD --not --remotes=origin 2>/dev/null
-            } | sort -u | grep -vE '^(\.claude/hooks/|\.claude/skills/|\.githooks/|\.github/copilot-instructions\.md$|memory/|\.git/|governance-checklist\.md$|README\.md$|CLAUDE\.md$|AGENTS\.md$|exercises/README\.md$|exercises/_template/)' )
+            } | sort -u | grep -vE "$SKIP_RX" )
 }
 
 recorded=""; sensitive=""
@@ -246,7 +250,10 @@ if [ "$MODE" = note ]; then
     P-*) msg="Reported by the agent: possibly prohibited behavior requested" ;;
     *)   msg="Reported by the agent: AI tool not approved for this data" ;;
   esac
-  if record "agent" "$id" "$level" "$msg" "note:$TODAY:$id"; then
+  # in Claude Code the prompt hook has usually recorded the same code already: no second row
+  if [ -f "$CHECKLIST" ] && grep -Fq "key:input:$TODAY:$id:" "$CHECKLIST"; then
+    echo "GOVERNANCE: $id was already recorded today (by the prompt scan)"
+  elif record "agent" "$id" "$level" "$msg" "note:$TODAY:$id"; then
     echo "GOVERNANCE: recorded $id in governance-checklist.md"
   else
     echo "GOVERNANCE: $id was already recorded today"
@@ -352,7 +359,7 @@ elif [ "$MODE" = commit ]; then
     mkdir -p "$TMPD/$(dirname "$f")"
     git -C "$ROOT" show ":$f" > "$TMPD/$f" 2>/dev/null && SCAN_FILES+=("$f")
   done < <(git -C "$ROOT" -c core.quotepath=off diff --cached --name-only --diff-filter=ACMR 2>/dev/null \
-           | grep -vE '^(\.claude/hooks/|\.claude/skills/|\.githooks/|\.github/copilot-instructions\.md$|\.git/|governance-checklist\.md$|README\.md$|CLAUDE\.md$|AGENTS\.md$|exercises/README\.md$|exercises/_template/)')
+           | grep -vE "$SKIP_RX")
   # a file and rule already listed in the checklist is not recorded again
   BOOTSTRAP=1
   if [ "${#SCAN_FILES[@]}" -gt 0 ] && (cd "$TMPD" && grep -EIiq -e "$COMBINED" -- "${SCAN_FILES[@]}") 2>/dev/null; then
